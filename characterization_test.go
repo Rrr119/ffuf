@@ -106,6 +106,8 @@ func TestCharacterization_ConfigGolden(t *testing.T) {
 		{name: "extensions", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt", "-e", ".php,.bak"}},
 		{name: "encoders", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt:FUZZ", "-enc", "FUZZ:b64encode"}},
 		{name: "autocalibration", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt", "-ac", "-acc", "custom1", "-acc", "custom2"}},
+		{name: "response_cluster", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt", "-rc", "-rct", "0.91"}},
+		{name: "response_cluster_config", toml: "[general]\nresponse_cluster = true\nresponse_cluster_threshold = \"0.88\"\n", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt"}},
 		{name: "acs_strategies", args: []string{"-u", "https://example.org/FUZZ", "-w", "/tmp/wl.txt", "-acs", "advanced,greedy", "-acs", "custom"}},
 		{name: "compat_data_alias", args: []string{"-u", "https://example.org/", "-w", "/tmp/wl.txt", "-data", "x=FUZZ"}},
 		// Locks the -ach behavior: a config-file -ac must NOT auto-enable per-host calibration.

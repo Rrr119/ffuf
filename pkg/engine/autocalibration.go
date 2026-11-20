@@ -79,8 +79,9 @@ func (j *Job) calibrationRequest(inputs map[string][]byte) (ffuf.Response, error
 		log.Printf("%s", err)
 		return ffuf.Response{}, err
 	}
-	// Only calibrate on responses that would be matched otherwise
-	if j.isMatch(resp) {
+	// Only calibrate on responses that would be matched by the explicit matcher
+	// and filter configuration. Clustering must not influence calibration itself.
+	if j.isBaseMatch(&resp) {
 		return resp, nil
 	}
 	return resp, fmt.Errorf("Response wouldn't be matched")
@@ -108,10 +109,10 @@ func (j *Job) CalibrateForHost(host string, baseinput map[string][]byte) error {
 				continue
 			}
 			responses = append(responses, resp)
-			err = j.calibrateFilters(responses, true)
-			if err != nil {
-				j.Output.Error(fmt.Sprintf("%s", err))
-			}
+		}
+		err := j.calibrateFilters(responses, true)
+		if err != nil {
+			j.Output.Error(fmt.Sprintf("%s", err))
 		}
 	}
 	j.Config.MatcherManager.SetCalibratedForHost(host, true)
@@ -167,6 +168,17 @@ func (j *Job) CalibrateIfNeeded(host string, input map[string][]byte) error {
 }
 
 func (j *Job) calibrateFilters(responses []ffuf.Response, perHost bool) error {
+	// Always learn similarity baselines: it can match a soft-404 template whose
+	// reflected path changes every counter. In -rc mode this similarity baseline
+	// replaces the exact size/word/line filter; with -ac alone the exact filter is
+	// still installed below for backward compatibility.
+	if j.Config.ResponseClusterer != nil {
+		j.Config.ResponseClusterer.Calibrate(responses)
+	}
+	if j.Config.ResponseCluster {
+		return nil
+	}
+
 	// Work down from the most specific common denominator
 	if len(responses) > 0 {
 		// Content length

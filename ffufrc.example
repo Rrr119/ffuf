@@ -38,6 +38,8 @@
     noninteractive = false
     quiet = false
     rate = 0
+    response_cluster = false
+    response_cluster_threshold = 0.85
     scrapers = "all"
     stopon403 = false
     stoponall = false

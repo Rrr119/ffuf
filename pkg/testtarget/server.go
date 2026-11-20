@@ -129,6 +129,22 @@ func (t *Target) handle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "junk")
 		return
 
+	// --- response similarity clustering --------------------------------
+	case p == "/soft404/real":
+		fmt.Fprint(w, "<html><h1>Administration</h1><p>Dashboard and settings.</p></html>")
+		return
+	case strings.HasPrefix(p, "/soft404/"):
+		value := strings.TrimPrefix(p, "/soft404/")
+		if value == "server-error" {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		// The repeated template is constant, but the reflected value changes the
+		// byte, word and (for some values) line counts. Exact count calibration
+		// cannot filter this page; similarity clustering can.
+		fmt.Fprintf(w, "<html><title>Not found</title><body>No page named %s exists. Return to the home page.%s</body></html>",
+			value, strings.Repeat("\n", len(value)%3))
+		return
+
 	// --- request-gated endpoints ----------------------------------------
 	case p == "/needs-header":
 		if r.Header.Get("X-Test") == "yes" {

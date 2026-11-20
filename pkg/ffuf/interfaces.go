@@ -119,6 +119,7 @@ type Result struct {
 	ScraperData      map[string][]string `json:"scraper"`
 	ResultFile       string              `json:"resultfile"`
 	Host             string              `json:"host"`
+	ClusterID        int                 `json:"cluster,omitempty"`
 	HTMLColor        string              `json:"-"`
 	// Printed reports whether this result has already been shown to the user
 	// (streamed live, or surfaced in the "N new matches" summary on resume). It

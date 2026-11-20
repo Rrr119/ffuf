@@ -294,6 +294,8 @@ func bindField(fs *flag.FlagSet, name, usage, kind string, ptr interface{}) {
 		fs.IntVar(p, name, *p, usage)
 	case *string:
 		fs.StringVar(p, name, *p, usage)
+	case *SimilarityThreshold:
+		fs.Var(p, name, usage)
 	case *[]string:
 		switch kind {
 		case "multistring":

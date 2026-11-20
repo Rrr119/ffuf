@@ -76,6 +76,12 @@ type jobContext struct {
 func NewJob(conf *ffuf.Config) *Job {
 	var j Job
 	j.Config = conf
+	if (conf.ResponseCluster || conf.AutoCalibration) && conf.ResponseClusterer == nil {
+		conf.ResponseClusterer = ffuf.NewResponseClusterer(ffuf.ClusterOptions{
+			Threshold:           conf.ResponseClusterThreshold,
+			AutoCalibrationOnly: !conf.ResponseCluster,
+		})
+	}
 	j.queue = newJobQueue()
 	j.Rate = NewRateThrottle(conf)
 	// Let the runner meter preflight/postflight requests against the same rate
@@ -436,10 +442,29 @@ func (j *Job) updateProgress() {
 	j.Output.Progress(prog)
 }
 
-// isMatch delegates the match/filter decision to the MatcherManager seam, adapting
-// the Config fields it needs. The logic itself now lives in filter.MatcherManager.
-func (j *Job) isMatch(resp ffuf.Response) bool {
-	return j.Config.MatcherManager.Matches(&resp, j.Config.AutoCalibrationPerHost, j.Config.MatcherMode, j.Config.FilterMode)
+// isBaseMatch delegates the match/filter decision to the MatcherManager seam,
+// adapting the Config fields it needs. The logic itself lives in
+// filter.MatcherManager. Response clustering is deliberately a second stage, so
+// existing matchers and filters keep exactly their original meaning.
+func (j *Job) isBaseMatch(resp *ffuf.Response) bool {
+	return j.Config.MatcherManager.Matches(resp, j.Config.AutoCalibrationPerHost, j.Config.MatcherMode, j.Config.FilterMode)
+}
+
+// matchResponse applies the configured matchers first, then response
+// clustering. The clusterer only sees responses that already matched, which
+// keeps status/size/word/line/regexp/time matcher semantics intact.
+func (j *Job) matchResponse(resp *ffuf.Response) bool {
+	if !j.isBaseMatch(resp) {
+		return false
+	}
+	if j.Config.ResponseClusterer == nil {
+		return true
+	}
+	decision := j.Config.ResponseClusterer.Observe(resp)
+	if j.Config.ResponseCluster {
+		resp.ClusterID = decision.ClusterID
+	}
+	return decision.Keep()
 }
 
 func (j *Job) ffufHash(pos int) []byte {
@@ -541,15 +566,17 @@ func (j *Job) runTask(ctx jobContext, input map[string][]byte, position int, ret
 	// Handle autocalibration, must be done after the actual request to ensure sane value in req.Host
 	_ = j.CalibrateIfNeeded(ffuf.HostURLFromRequest(req), input)
 
+	matched := j.matchResponse(&resp)
+
 	// Handle scraper actions
 	if j.Scraper != nil {
-		for _, sres := range j.Scraper.Execute(&resp, j.isMatch(resp)) {
+		for _, sres := range j.Scraper.Execute(&resp, matched) {
 			resp.ScraperData[sres.Name] = sres.Results
 			j.handleScraperResult(&resp, sres)
 		}
 	}
 
-	if j.isMatch(resp) {
+	if matched {
 		// Re-send request through replay-proxy if needed
 		if j.ReplayRunner != nil {
 			replayreq, err := j.ReplayRunner.Prepare(input, &basereq)

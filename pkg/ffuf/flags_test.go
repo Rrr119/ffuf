@@ -31,7 +31,7 @@ func TestRegisterFlags_Wellformed(t *testing.T) {
 
 	// The full expected flag surface. Unlike a bare count, this catches a net-zero
 	// add-and-remove, a rename, or a duplicate — update it DELIBERATELY when the CLI
-	// surface changes. 80 visible flags + 7 hidden compat (4 aliases + 3 dummies).
+	// surface changes. 82 visible flags + 9 hidden compat (6 aliases + 3 dummies).
 	expected := map[string]bool{
 		// HTTP
 		"H": true, "X": true, "b": true, "cc": true, "ck": true, "d": true,
@@ -49,6 +49,7 @@ func TestRegisterFlags_Wellformed(t *testing.T) {
 		"t": true, "v": true,
 		// Matcher
 		"mc": true, "ml": true, "mmode": true, "mr": true, "ms": true, "mt": true, "mw": true,
+		"rc": true, "rct": true,
 		// Filter
 		"fc": true, "fl": true, "fmode": true, "fr": true, "fs": true, "ft": true, "fw": true,
 		// Input
@@ -58,6 +59,7 @@ func TestRegisterFlags_Wellformed(t *testing.T) {
 		"audit-log": true, "debug-log": true, "o": true, "od": true, "of": true, "or": true,
 		// Compat aliases
 		"cookie": true, "data": true, "data-ascii": true, "data-binary": true,
+		"response-cluster": true, "response-cluster-threshold": true,
 		// Compat dummies
 		"compressed": true, "i": true, "k": true,
 	}

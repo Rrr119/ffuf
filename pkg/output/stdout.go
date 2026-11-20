@@ -156,6 +156,9 @@ func (s *Stdoutput) Banner() {
 	// Autocalibration
 	autocalib := fmt.Sprintf("%t", s.config.AutoCalibration)
 	printOption([]byte("Calibration"), []byte(autocalib))
+	if s.config.ResponseCluster {
+		printOption([]byte("Response cluster"), []byte(fmt.Sprintf("%.2f", s.config.ResponseClusterThreshold)))
+	}
 
 	// Proxies
 	if len(s.config.ProxyURL) > 0 {
@@ -426,6 +429,7 @@ func (s *Stdoutput) Result(resp ffuf.Response) {
 		Duration:         resp.Duration,
 		ResultFile:       resp.ResultFile,
 		Host:             resp.Request.Host,
+		ClusterID:        resp.ClusterID,
 	}
 	s.resultMutex.Lock()
 	paused := s.paused

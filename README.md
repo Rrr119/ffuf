@@ -212,6 +212,8 @@ MATCHER OPTIONS:
   -ms                 Match HTTP response size
   -mt                 Match how many milliseconds to the first response byte, either greater or less than. EG: >100 or <100
   -mw                 Match amount of words in response
+  -rc                 Cluster matched responses by content similarity and suppress duplicate response shapes (default: false)
+  -rct                Minimum response similarity for clustering, between 0 and 1. Implies -rc (default: 0.85)
 
 FILTER OPTIONS:
   -fc                 Filter HTTP status codes from response. Comma separated list of codes and ranges
@@ -259,6 +261,30 @@ EXAMPLE USAGE:
 
   More information and examples: https://github.com/ffuf/ffuf
 ```
+
+### Response clustering
+
+Response clustering groups matched responses by status, content type and body
+similarity. The first response in each cluster is printed; later responses with
+the same shape are suppressed. Values supplied by the fuzzer are masked before
+comparison, so a soft-404 page that reflects the requested path still clusters
+as one response shape even when its size changes.
+
+```
+ffuf -w wordlist.txt -u https://example.org/FUZZ -rc -rct 0.9
+```
+
+Clustering runs after the regular matchers and filters: a response that fails
+`-mc`, `-ms`, `-mw`, `-ml`, `-mr` or `-mt` never enters a cluster. Combine it
+with autocalibration to learn baseline clusters from calibration probes:
+
+```
+ffuf -w wordlist.txt -u https://example.org/FUZZ -ac -rc
+```
+
+`-ac` on its own also learns the similarity baseline (without suppressing
+ordinary duplicate responses), while `-rc` enables one-representative-per-cluster
+output.
 
 ### Interactive mode
 

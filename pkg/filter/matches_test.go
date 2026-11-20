@@ -54,3 +54,20 @@ func TestMatches_FilterDrops(t *testing.T) {
 		t.Error("a size-20 response should survive the size-10 filter")
 	}
 }
+
+func BenchmarkMatcherManagerMatches(b *testing.B) {
+	mm := NewMatcherManager()
+	_ = mm.AddMatcher("status", "200-299")
+	_ = mm.AddMatcher("size", "10-1000")
+	_ = mm.AddFilter("regexp", "unlikely-marker", false)
+	r := resp(200, 512)
+	r.Data = []byte("benchmark body")
+	r.Request = &ffuf.Request{Input: map[string][]byte{"FUZZ": []byte("value")}}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if !mm.Matches(r, false, "and", "or") {
+			b.Fatal("response should match")
+		}
+	}
+}

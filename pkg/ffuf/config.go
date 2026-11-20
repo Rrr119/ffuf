@@ -92,6 +92,9 @@ type Config struct {
 	ReplayProxyURL            string                `json:"replayproxyurl"`
 	RequestFile               string                `json:"requestfile"`
 	RequestProto              string                `json:"requestproto"`
+	ResponseCluster           bool                  `json:"response_cluster"`
+	ResponseClusterThreshold  float64               `json:"response_cluster_threshold"`
+	ResponseClusterer         *ResponseClusterer    `json:"-"`
 	ScraperFile               string                `json:"scraperfile"`
 	Scrapers                  string                `json:"scrapers"`
 	SNI                       string                `json:"sni"`
@@ -153,6 +156,7 @@ func NewConfig(ctx context.Context, cancel context.CancelFunc) Config {
 	conf.Method = "GET"
 	conf.ProgressFrequency = 125
 	conf.RequestProto = "https"
+	conf.ResponseClusterThreshold = DefaultResponseClusterThreshold
 	return conf
 }
 

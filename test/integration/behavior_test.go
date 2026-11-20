@@ -196,6 +196,63 @@ func TestAutocalibrationConcurrent(t *testing.T) {
 	}
 }
 
+// TestResponseClusteringDeduplicates exercises the no-calibration path: the
+// first response shape is the representative and later copies are suppressed.
+// Threads is pinned to one so the representative is deterministic.
+func TestResponseClusteringDeduplicates(t *testing.T) {
+	target := testtarget.New()
+	defer target.Close()
+
+	got := runScan(t, target.URL+"/soft404/FUZZ",
+		[]string{"one", "two", "a-much-longer-missing-page", "real"},
+		func(o *ffuf.ConfigOptions) {
+			o.General.ResponseCluster = true
+			o.General.Threads = 1
+		},
+		func(mm ffuf.MatcherManager) { mustMatch(t, mm, "status", "all") },
+	)
+	assertSet(t, got, []string{"one", "real"})
+}
+
+// TestResponseClusteringAutocalibration is the similarity-based counterpart to
+// TestAutocalibration. The mock soft-404 reflects the requested path, so byte,
+// word and line counts all vary across calibration probes; only content
+// similarity can learn and suppress the baseline.
+func TestResponseClusteringAutocalibration(t *testing.T) {
+	target := testtarget.New()
+	defer target.Close()
+
+	got := runScan(t, target.URL+"/soft404/FUZZ",
+		[]string{"junk1", "junk2", "a-much-longer-missing-page", "real"},
+		func(o *ffuf.ConfigOptions) {
+			o.General.AutoCalibration = true
+			o.General.AutoCalibrationStrings = []string{"calibration-alpha", "calibration-beta-longer"}
+			o.General.ResponseCluster = true
+			o.General.Threads = 1
+		},
+		func(mm ffuf.MatcherManager) { mustMatch(t, mm, "status", "all") },
+	)
+	assertSet(t, got, []string{"real"})
+}
+
+// TestResponseClusteringRespectsExistingMatchers locks the ordering guarantee:
+// clustering is applied after the existing matcher decision, so a response that
+// fails -mc cannot leak out just because it represents its own cluster.
+func TestResponseClusteringRespectsExistingMatchers(t *testing.T) {
+	target := testtarget.New()
+	defer target.Close()
+
+	got := runScan(t, target.URL+"/soft404/FUZZ",
+		[]string{"one", "server-error", "real"},
+		func(o *ffuf.ConfigOptions) {
+			o.General.ResponseCluster = true
+			o.General.Threads = 1
+		},
+		func(mm ffuf.MatcherManager) { mustMatch(t, mm, "status", "200") },
+	)
+	assertSet(t, got, []string{"one", "real"})
+}
+
 func TestRecursionDefaultStrategy(t *testing.T) {
 	target := testtarget.New()
 	defer target.Close()

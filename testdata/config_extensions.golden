@@ -59,6 +59,8 @@
   "replayproxyurl": "",
   "requestfile": "",
   "requestproto": "https",
+  "response_cluster": false,
+  "response_cluster_threshold": 0.85,
   "scraperfile": "",
   "scrapers": "all",
   "sni": "",

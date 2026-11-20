@@ -63,29 +63,31 @@ type HTTPOptions struct {
 }
 
 type GeneralOptions struct {
-	AutoCalibration           bool     `json:"autocalibration" ffuf:"ac" section:"general" usage:"Automatically calibrate filtering options"`
-	AutoCalibrationKeyword    string   `json:"autocalibration_keyword" ffuf:"ack" section:"general" usage:"Autocalibration keyword"`
-	AutoCalibrationPerHost    bool     `json:"autocalibration_per_host" ffuf:"ach" section:"general" usage:"Per host autocalibration"`
-	AutoCalibrationStrategies []string `json:"autocalibration_strategies" ffuf:"acs" kind:"csvreplace" section:"general" usage:"Custom auto-calibration strategies. Can be used multiple times. Implies -ac"`
-	AutoCalibrationStrings    []string `json:"autocalibration_strings" ffuf:"acc" kind:"multistring" section:"general" usage:"Custom auto-calibration string. Can be used multiple times. Implies -ac"`
-	Colors                    bool     `json:"colors" ffuf:"c" section:"general" usage:"Colorize output."`
-	ConfigFile                string   `toml:"-" json:"config_file" ffuf:"config" section:"general" usage:"Load configuration from a file"`
-	Delay                     string   `json:"delay" ffuf:"p" section:"general" usage:"Seconds of delay between requests, or a range of random delay. For example \"0.1\" or \"0.1-2.0\""`
-	Json                      bool     `json:"json" ffuf:"json" section:"general" usage:"JSON output, printing newline-delimited JSON records"`
-	MaxTime                   int      `json:"maxtime" ffuf:"maxtime" section:"general" usage:"Maximum running time in seconds for entire process."`
-	MaxTimeJob                int      `json:"maxtime_job" ffuf:"maxtime-job" section:"general" usage:"Maximum running time in seconds per job."`
-	Noninteractive            bool     `json:"noninteractive" ffuf:"noninteractive" section:"general" usage:"Disable the interactive console functionality"`
-	Quiet                     bool     `json:"quiet" ffuf:"s" section:"general" usage:"Do not print additional information (silent mode)"`
-	Rate                      int      `json:"rate" ffuf:"rate" section:"general" usage:"Rate of requests per second"`
-	ScraperFile               string   `json:"scraperfile" ffuf:"scraperfile" section:"general" usage:"Custom scraper file path"`
-	Scrapers                  string   `json:"scrapers" ffuf:"scrapers" section:"general" usage:"Active scraper groups"`
-	Searchhash                string   `json:"-" ffuf:"search" section:"general" usage:"Search for a FFUFHASH payload from ffuf history"`
-	ShowVersion               bool     `toml:"-" json:"-" ffuf:"V" section:"general" usage:"Show version information."`
-	StopOn403                 bool     `json:"stop_on_403" ffuf:"sf" section:"general" usage:"Stop when > 95% of responses return 403 Forbidden"`
-	StopOnAll                 bool     `json:"stop_on_all" ffuf:"sa" section:"general" usage:"Stop on all error cases. Implies -sf and -se."`
-	StopOnErrors              bool     `json:"stop_on_errors" ffuf:"se" section:"general" usage:"Stop on spurious errors"`
-	Threads                   int      `json:"threads" ffuf:"t" section:"general" usage:"Number of concurrent threads."`
-	Verbose                   bool     `json:"verbose" ffuf:"v" section:"general" usage:"Verbose output, printing full URL and redirect location (if any) with the results."`
+	AutoCalibration           bool                `json:"autocalibration" ffuf:"ac" section:"general" usage:"Automatically calibrate filtering options"`
+	AutoCalibrationKeyword    string              `json:"autocalibration_keyword" ffuf:"ack" section:"general" usage:"Autocalibration keyword"`
+	AutoCalibrationPerHost    bool                `json:"autocalibration_per_host" ffuf:"ach" section:"general" usage:"Per host autocalibration"`
+	AutoCalibrationStrategies []string            `json:"autocalibration_strategies" ffuf:"acs" kind:"csvreplace" section:"general" usage:"Custom auto-calibration strategies. Can be used multiple times. Implies -ac"`
+	AutoCalibrationStrings    []string            `json:"autocalibration_strings" ffuf:"acc" kind:"multistring" section:"general" usage:"Custom auto-calibration string. Can be used multiple times. Implies -ac"`
+	Colors                    bool                `json:"colors" ffuf:"c" section:"general" usage:"Colorize output."`
+	ConfigFile                string              `toml:"-" json:"config_file" ffuf:"config" section:"general" usage:"Load configuration from a file"`
+	Delay                     string              `json:"delay" ffuf:"p" section:"general" usage:"Seconds of delay between requests, or a range of random delay. For example \"0.1\" or \"0.1-2.0\""`
+	Json                      bool                `json:"json" ffuf:"json" section:"general" usage:"JSON output, printing newline-delimited JSON records"`
+	MaxTime                   int                 `json:"maxtime" ffuf:"maxtime" section:"general" usage:"Maximum running time in seconds for entire process."`
+	MaxTimeJob                int                 `json:"maxtime_job" ffuf:"maxtime-job" section:"general" usage:"Maximum running time in seconds per job."`
+	Noninteractive            bool                `json:"noninteractive" ffuf:"noninteractive" section:"general" usage:"Disable the interactive console functionality"`
+	Quiet                     bool                `json:"quiet" ffuf:"s" section:"general" usage:"Do not print additional information (silent mode)"`
+	Rate                      int                 `json:"rate" ffuf:"rate" section:"general" usage:"Rate of requests per second"`
+	ResponseCluster           bool                `json:"response_cluster" toml:"response_cluster" ffuf:"rc" alias:"response-cluster" section:"matcher" usage:"Cluster matched responses by content similarity and suppress duplicate response shapes"`
+	ResponseClusterThreshold  SimilarityThreshold `json:"response_cluster_threshold" toml:"response_cluster_threshold" ffuf:"rct" alias:"response-cluster-threshold" section:"matcher" usage:"Minimum response similarity for clustering, between 0 and 1. Implies -rc"`
+	ScraperFile               string              `json:"scraperfile" ffuf:"scraperfile" section:"general" usage:"Custom scraper file path"`
+	Scrapers                  string              `json:"scrapers" ffuf:"scrapers" section:"general" usage:"Active scraper groups"`
+	Searchhash                string              `json:"-" ffuf:"search" section:"general" usage:"Search for a FFUFHASH payload from ffuf history"`
+	ShowVersion               bool                `toml:"-" json:"-" ffuf:"V" section:"general" usage:"Show version information."`
+	StopOn403                 bool                `json:"stop_on_403" ffuf:"sf" section:"general" usage:"Stop when > 95% of responses return 403 Forbidden"`
+	StopOnAll                 bool                `json:"stop_on_all" ffuf:"sa" section:"general" usage:"Stop on all error cases. Implies -sf and -se."`
+	StopOnErrors              bool                `json:"stop_on_errors" ffuf:"se" section:"general" usage:"Stop on spurious errors"`
+	Threads                   int                 `json:"threads" ffuf:"t" section:"general" usage:"Number of concurrent threads."`
+	Verbose                   bool                `json:"verbose" ffuf:"v" section:"general" usage:"Verbose output, printing full URL and redirect location (if any) with the results."`
 }
 
 type InputOptions struct {
@@ -152,6 +154,8 @@ func NewConfigOptions() *ConfigOptions {
 	c.General.Noninteractive = false
 	c.General.Quiet = false
 	c.General.Rate = 0
+	c.General.ResponseCluster = false
+	c.General.ResponseClusterThreshold = SimilarityThreshold{Value: DefaultResponseClusterThreshold}
 	c.General.Searchhash = ""
 	c.General.ScraperFile = ""
 	c.General.Scrapers = "all"
@@ -528,6 +532,21 @@ func ConfigFromOptions(parseOpts *ConfigOptions, ctx context.Context, cancel con
 		conf.AutoCalibration = true
 	}
 
+	// Response clustering options. A threshold is only effective together with
+	// clustering, so supplying one implies -rc in the same way -acc implies -ac.
+	conf.ResponseCluster = parseOpts.General.ResponseCluster
+	conf.ResponseClusterThreshold = parseOpts.General.ResponseClusterThreshold.Value
+	if !parseOpts.General.ResponseClusterThreshold.Explicit && conf.ResponseClusterThreshold == 0 {
+		// The TOML decoder leaves an absent custom field at its zero value when a
+		// config file is loaded. Restore the documented default in that case.
+		conf.ResponseClusterThreshold = DefaultResponseClusterThreshold
+	}
+	if conf.ResponseClusterThreshold <= 0 || conf.ResponseClusterThreshold > 1 {
+		errs.Add(fmt.Errorf("Response cluster threshold (-rct) must be greater than 0 and at most 1, got %v", conf.ResponseClusterThreshold))
+	} else if parseOpts.General.ResponseClusterThreshold.Explicit {
+		conf.ResponseCluster = true
+	}
+
 	if parseOpts.General.Rate < 0 {
 		conf.Rate = 0
 	} else {
@@ -883,6 +902,9 @@ func ReadConfig(configFile string) (*ConfigOptions, error) {
 	configData, err := os.ReadFile(configFile)
 	if err == nil {
 		err = toml.Unmarshal(configData, conf)
+		if !conf.General.ResponseClusterThreshold.Explicit && conf.General.ResponseClusterThreshold.Value == 0 {
+			conf.General.ResponseClusterThreshold.Value = DefaultResponseClusterThreshold
+		}
 	}
 	return conf, err
 }
