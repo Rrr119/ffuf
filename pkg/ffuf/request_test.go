@@ -50,6 +50,22 @@ func TestCopyRequest(t *testing.T) {
 	}
 }
 
+func TestRecursionURL(t *testing.T) {
+	tests := []struct {
+		matched string
+		want    string
+	}{
+		{"https://example.org/admin", "https://example.org/admin/FUZZ"},
+		{"https://example.org/admin/", "https://example.org/admin/FUZZ"},
+		{"https://example.org/admin///", "https://example.org/admin/FUZZ"},
+	}
+	for _, tt := range tests {
+		if got := RecursionURL(tt.matched); got != tt.want {
+			t.Errorf("RecursionURL(%q) = %q, want %q", tt.matched, got, tt.want)
+		}
+	}
+}
+
 func TestSniperRequests(t *testing.T) {
 	headers := make(map[string]string)
 	headers["foo"] = "§bar§"

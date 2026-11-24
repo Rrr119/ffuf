@@ -26,7 +26,7 @@ func newRecursionManager(conf *ffuf.Config, queue *jobQueue, output ffuf.OutputP
 // by the caller.
 func (r *recursionManager) handleGreedy(ctx jobContext, resp ffuf.Response) {
 	if r.config.RecursionDepth == 0 || ctx.depth < r.config.RecursionDepth {
-		recUrl := resp.Request.Url + "/" + "FUZZ"
+		recUrl := ffuf.RecursionURL(resp.Request.Url)
 		newJob := QueueJob{Url: recUrl, depth: ctx.depth + 1, req: ffuf.RecursionRequest(r.config, recUrl)}
 		r.queue.push(newJob)
 		r.output.Info(fmt.Sprintf("Adding a new job to the queue: %s", recUrl))
@@ -39,7 +39,7 @@ func (r *recursionManager) handleGreedy(ctx jobContext, resp ffuf.Response) {
 // (default strategy: the response redirects to its own path with a trailing
 // slash), if the recursion depth allows.
 func (r *recursionManager) handleDefault(ctx jobContext, resp ffuf.Response) {
-	recUrl := resp.Request.Url + "/" + "FUZZ"
+	recUrl := ffuf.RecursionURL(resp.Request.Url)
 	if (resp.Request.Url + "/") != resp.GetRedirectLocation(true) {
 		// Not a directory, return early
 		return

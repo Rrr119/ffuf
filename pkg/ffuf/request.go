@@ -42,6 +42,13 @@ func RecursionRequest(conf *Config, path string) Request {
 	return r
 }
 
+// RecursionURL returns the next recursion target for a matched URL. A matched
+// path can already end in "/" (for example when the wordlist entry does), so
+// normalize it before adding the keyword instead of producing a "//FUZZ" path.
+func RecursionURL(matchedURL string) string {
+	return strings.TrimRight(matchedURL, "/") + "/FUZZ"
+}
+
 // CopyRequest performs a deep copy of a request and returns a new struct
 func CopyRequest(basereq *Request) Request {
 	var req Request

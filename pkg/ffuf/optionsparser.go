@@ -718,6 +718,14 @@ func ConfigFromOptions(parseOpts *ConfigOptions, ctx context.Context, cancel con
 			errmsg := "When using -recursion the URL (-u) must end with FUZZ keyword."
 			errs.Add(fmt.Errorf("%s", errmsg))
 		}
+		if parseOpts.HTTP.RecursionDepth < 0 {
+			errs.Add(fmt.Errorf("When using -recursion-depth the value must be zero or greater."))
+		}
+		switch parseOpts.HTTP.RecursionStrategy {
+		case "", "default", "greedy":
+		default:
+			errs.Add(fmt.Errorf("Invalid -recursion-strategy %q: valid values are default and greedy.", parseOpts.HTTP.RecursionStrategy))
+		}
 	}
 
 	// Make verbose mutually exclusive with json

@@ -25,6 +25,22 @@ func TestRecursionManager_GreedyQueuesWithinDepth(t *testing.T) {
 	}
 }
 
+func TestRecursionManager_NormalizesTrailingSlash(t *testing.T) {
+	q := newJobQueue()
+	rm := newRecursionManager(&ffuf.Config{Method: "GET", RecursionDepth: 1}, q, NewNullOutput())
+	resp := ffuf.Response{Request: &ffuf.Request{Url: "http://x/admin/"}}
+
+	rm.handleGreedy(jobContext{depth: 0}, resp)
+
+	if !q.hasNext() {
+		t.Fatal("expected a recursion job to be queued")
+	}
+	job, _ := q.advance()
+	if job.Url != "http://x/admin/FUZZ" {
+		t.Errorf("queued url = %q, want http://x/admin/FUZZ", job.Url)
+	}
+}
+
 func TestRecursionManager_GreedyRespectsMaxDepth(t *testing.T) {
 	q := newJobQueue()
 	rm := newRecursionManager(&ffuf.Config{Method: "GET", RecursionDepth: 1}, q, NewNullOutput())

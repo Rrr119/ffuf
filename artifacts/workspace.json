@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid36795",
+  "B": "/home/dev/feedback/uid36795",
+  "sha": "a34da43e6461b762ad80d85151094741bc9abb1d",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "ffuf",
+    "repo": "ffuf",
+    "sha": "a34da43e6461b762ad80d85151094741bc9abb1d"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "ffuf",
+    "cloneUrl": "https://github.com/Rrr119/ffuf.git"
+  },
+  "at": "2026-11-24T18:15:57.105Z"
+}

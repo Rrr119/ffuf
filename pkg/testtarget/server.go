@@ -33,16 +33,39 @@ type Recorded struct {
 	At     time.Time
 }
 
+// RecursiveSite selects one of the independent directory trees used by the
+// recursion integration tests. Each site has a hand-checked path layout so a
+// test can compare ffuf's discovered URLs against an explicit expected set.
+type RecursiveSite string
+
+const (
+	RecursiveGreedySite   RecursiveSite = "greedy"
+	RecursiveFilteredSite RecursiveSite = "filtered"
+	RecursiveRedirectSite RecursiveSite = "redirect"
+)
+
 // Target wraps an httptest.Server with a thread-safe request recorder.
 type Target struct {
 	*httptest.Server
+	site     RecursiveSite
 	mu       sync.Mutex
 	recorded []Recorded
 }
 
 // New starts a new deterministic target server. The caller must Close it.
 func New() *Target {
-	t := &Target{}
+	return newTarget("")
+}
+
+// NewRecursiveSite starts a target containing only one recursion test tree.
+// Separate servers keep the three-site path checks independent even though all
+// of them run in the same test process.
+func NewRecursiveSite(site RecursiveSite) *Target {
+	return newTarget(site)
+}
+
+func newTarget(site RecursiveSite) *Target {
+	t := &Target{site: site}
 	t.Server = httptest.NewServer(http.HandlerFunc(t.handle))
 	return t
 }
@@ -73,6 +96,11 @@ func (t *Target) handle(w http.ResponseWriter, r *http.Request) {
 	t.mu.Unlock()
 
 	p := r.URL.Path
+	if t.site != "" {
+		t.handleRecursiveSite(w, p)
+		return
+	}
+
 	switch {
 	// --- match/filter dimension endpoints -------------------------------
 	case strings.HasPrefix(p, "/status/"):
@@ -198,6 +226,67 @@ func (t *Target) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	case p == "/rdir/found":
 		fmt.Fprint(w, "found under rdir")
+		return
+	}
+
+	notFound(w)
+}
+
+func (t *Target) handleRecursiveSite(w http.ResponseWriter, p string) {
+	switch t.site {
+	case RecursiveGreedySite:
+		switch p {
+		case "/root":
+			fmt.Fprint(w, "root")
+		case "/root/child":
+			fmt.Fprint(w, "child")
+		case "/root/child/leaf":
+			fmt.Fprint(w, "leaf")
+		case "/root/sibling":
+			fmt.Fprint(w, "sibling")
+		case "/noise":
+			fmt.Fprint(w, "noise")
+		case "/slash/":
+			fmt.Fprint(w, "slash directory")
+		case "/slash/leaf":
+			fmt.Fprint(w, "slash leaf")
+		default:
+			notFound(w)
+		}
+		return
+
+	case RecursiveFilteredSite:
+		switch p {
+		case "/api":
+			fmt.Fprint(w, "api REAL")
+		case "/api/v1":
+			fmt.Fprint(w, "api v1 REAL")
+		case "/soft404":
+			fmt.Fprint(w, "soft-404 junk")
+		case "/soft404/hidden":
+			fmt.Fprint(w, "hidden REAL")
+		default:
+			notFound(w)
+		}
+		return
+
+	case RecursiveRedirectSite:
+		switch p {
+		case "/docs":
+			w.Header().Set("Location", "/docs/")
+			w.WriteHeader(http.StatusMovedPermanently)
+		case "/docs/":
+			fmt.Fprint(w, "docs index")
+		case "/docs/guide":
+			w.Header().Set("Location", "/docs/guide/")
+			w.WriteHeader(http.StatusMovedPermanently)
+		case "/docs/guide/":
+			fmt.Fprint(w, "guide index")
+		case "/docs/guide/intro":
+			fmt.Fprint(w, "intro")
+		default:
+			notFound(w)
+		}
 		return
 	}
 

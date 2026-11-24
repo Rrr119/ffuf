@@ -10,6 +10,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 	"sync"
@@ -45,6 +46,13 @@ func TestMain(m *testing.M) {
 // compare against an expected SET, never an ordered slice. runScan sorts for
 // exactly that reason.
 func runScan(t *testing.T, url string, wordlist []string, configure func(*ffuf.ConfigOptions), setup func(ffuf.MatcherManager)) []string {
+	t.Helper()
+	return runScanCapture(t, url, wordlist, configure, setup).inputs()
+}
+
+// runScanCapture runs the same full job as runScan and returns the capture, for
+// tests that need the discovered URLs rather than only the FUZZ payloads.
+func runScanCapture(t *testing.T, url string, wordlist []string, configure func(*ffuf.ConfigOptions), setup func(ffuf.MatcherManager)) *capture {
 	t.Helper()
 
 	opts := ffuf.NewConfigOptions()
@@ -84,7 +92,7 @@ func runScan(t *testing.T, url string, wordlist []string, configure func(*ffuf.C
 	job.Output = out
 
 	job.Start()
-	return out.inputs()
+	return out
 }
 
 // writeWordlist writes words to a temp file (cleaned up with the test) and
@@ -127,6 +135,26 @@ func (c *capture) inputs() []string {
 		if !seen[v] {
 			seen[v] = true
 			out = append(out, v)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// paths returns the sorted, de-duplicated URL paths that matched.
+func (c *capture) paths() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	seen := make(map[string]bool)
+	out := make([]string, 0, len(c.responses))
+	for _, r := range c.responses {
+		u, err := url.Parse(r.Request.Url)
+		if err != nil {
+			continue
+		}
+		if !seen[u.Path] {
+			seen[u.Path] = true
+			out = append(out, u.Path)
 		}
 	}
 	sort.Strings(out)

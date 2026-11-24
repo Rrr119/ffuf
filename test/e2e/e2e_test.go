@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -128,6 +129,24 @@ func matchedPayloads(stdout []byte) []string {
 	return out
 }
 
+// matchedPaths returns the sorted set of full URL paths in matched results.
+func matchedPaths(stdout []byte) []string {
+	seen := make(map[string]bool)
+	var out []string
+	for _, r := range parseResults(stdout) {
+		u, err := url.Parse(r.Url)
+		if err != nil {
+			continue
+		}
+		if !seen[u.Path] {
+			seen[u.Path] = true
+			out = append(out, u.Path)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // TestE2E_JSONOutput: the CLI parsed the flags, ran the scan, and emitted the
 // matched set as JSON.
 func TestE2E_JSONOutput(t *testing.T) {
@@ -155,6 +174,59 @@ func TestE2E_DefaultMatcher(t *testing.T) {
 		"-json", "-t", "1", "-noninteractive",
 	)
 	assertSet(t, matchedPayloads(out), []string{"200", "403", "500"})
+}
+
+// TestE2E_RecursivePathDiscovery runs the three hand-verified recursion trees
+// through the real CLI. It covers greedy/default traversal, the depth limit, and
+// the interaction with an explicit status matcher and regexp filter.
+func TestE2E_RecursivePathDiscovery(t *testing.T) {
+	t.Run("greedy", func(t *testing.T) {
+		target := testtarget.NewRecursiveSite(testtarget.RecursiveGreedySite)
+		defer target.Close()
+
+		wl := writeWordlist(t, []string{"root", "noise", "slash/", "child", "sibling", "leaf", "missing"})
+		out := runFfuf(t, nil,
+			"-u", target.URL+"/FUZZ", "-w", wl,
+			"-mc", "200", "-recursion", "-recursion-strategy", "greedy", "-recursion-depth", "2",
+			"-json", "-t", "1", "-noninteractive",
+		)
+		assertSet(t, matchedPaths(out), []string{
+			"/root",
+			"/noise",
+			"/slash/",
+			"/root/child",
+			"/root/sibling",
+			"/slash/leaf",
+			"/root/child/leaf",
+		})
+	})
+
+	t.Run("filtered", func(t *testing.T) {
+		target := testtarget.NewRecursiveSite(testtarget.RecursiveFilteredSite)
+		defer target.Close()
+
+		wl := writeWordlist(t, []string{"api", "v1", "soft404", "hidden", "missing"})
+		out := runFfuf(t, nil,
+			"-u", target.URL+"/FUZZ", "-w", wl,
+			"-mc", "200", "-fr", "junk",
+			"-recursion", "-recursion-strategy", "greedy", "-recursion-depth", "2",
+			"-json", "-t", "1", "-noninteractive",
+		)
+		assertSet(t, matchedPaths(out), []string{"/api", "/api/v1"})
+	})
+
+	t.Run("redirect", func(t *testing.T) {
+		target := testtarget.NewRecursiveSite(testtarget.RecursiveRedirectSite)
+		defer target.Close()
+
+		wl := writeWordlist(t, []string{"docs", "guide", "intro", "missing"})
+		out := runFfuf(t, nil,
+			"-u", target.URL+"/FUZZ", "-w", wl,
+			"-mc", "200,301", "-recursion", "-recursion-strategy", "default", "-recursion-depth", "2",
+			"-json", "-t", "1", "-noninteractive",
+		)
+		assertSet(t, matchedPaths(out), []string{"/docs", "/docs/guide", "/docs/guide/intro"})
+	})
 }
 
 // TestE2E_MatcherSuppressesDefault: setting -mr (any non-status matcher) with no
